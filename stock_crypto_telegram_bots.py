@@ -137,3 +137,5 @@ SHIBA_target_price = 0.0023
 price_getter("BTC", 5, "greaterThan")
 # print("testing ATOS")
 # price_getter("ATOS", 5, "lessThan")
+
+# GIT TEST
