@@ -1,4 +1,5 @@
 # FIXME: TESTING
+# FIXME: TEST SOUP STUFF
 
 from bs4 import BeautifulSoup
 import requests
@@ -11,7 +12,7 @@ CRYPTO_CHAT_ID = "-619492712"
 CRYPTO_TELEGRAM_URL = f"https://api.telegram.org/bot{CRYPTO_BOT_TOKEN}/sendMessage"
 
 
-STOCK_BOT_TOKEN = "5172522415:AAEqnv01yFDyzCN20fXJUUMx1PATlv5sfF"
+STOCK_BOT_TOKEN = "5172522415:AAEqnv01yFDyzCN20fXJUUMx1PATlv5sfFs"
 STOCK_CHAT_ID = "-646527859"
 STOCK_TELEGRAM_URL = f"https://api.telegram.org/bot{STOCK_BOT_TOKEN}/sendMessage"
 
@@ -48,7 +49,10 @@ STOCK_AND_CRYPTO_DICT = {
 
 
 # Sends message on Telegram
-def telegram_messenger(stock_crypto_name, price):
+def telegram_messenger(stock_crypto_name, investment_type, price):
+    chat_id = STOCK_CHAT_ID if investment_type == 'stock' else CRYPTO_CHAT_ID
+    url = STOCK_TELEGRAM_URL if investment_type == 'stock' else CRYPTO_TELEGRAM_URL 
+    
     # datetime
     time = dt.now(timezone("US/Eastern"))
     dt_string = time.strftime("%m/%d/%Y %H:%M")
@@ -56,20 +60,20 @@ def telegram_messenger(stock_crypto_name, price):
 
     # GET pieces
     MESSAGE = f"{dt_string}---${stock_crypto_name} IS ${price if stock_crypto_name != 'SHIBA_INU' else '{:f}'.format(price)}"
-    PARAMS = {"chat_id": CRYPTO_CHAT_ID, "text": f"{MESSAGE}"}
+    PARAMS = {"chat_id": chat_id, "text": f"{MESSAGE}"}
 
     # GET call
-    requests.get(url=CRYPTO_TELEGRAM_URL, params=PARAMS)
+    requests.get(url=url, params=PARAMS)
 
 
 # Compares current price to target price based on comparison type given and then calls telegram_messenger if conditions met
 def compare_price_and_send_message(
-    current_price, target_price, investment_name, comparison_type
+    current_price, target_price, investment_name, comparison_type, investment_type
 ):
     if comparison_type == "lessThan" and current_price < target_price:
-        telegram_messenger(investment_name, current_price)
+        telegram_messenger(investment_name, investment_type, current_price)
     elif comparison_type == "greaterThan" and current_price > target_price:
-        telegram_messenger(investment_name, current_price)
+        telegram_messenger(investment_name, investment_type, current_price)
 
 
 # FIXME WORKS FOR EST, NEED TO SEE IF IT WORKS FOR GMT?
@@ -125,17 +129,12 @@ def price_getter(investment_name, target_price, comparison_type):
     CURRENT_PRICE = get_current_price(investment_type, link)
     if CURRENT_PRICE != None:
         compare_price_and_send_message(
-            CURRENT_PRICE, target_price, investment_name, comparison_type
+            CURRENT_PRICE, target_price, investment_name, comparison_type, investment_type
         )
 
 
 # FIXME: MOVE THESE INTO FUNCTION CALLS
 # CRYPTO CONSTANTS
-BTC_target_price = 38500
-SHIBA_target_price = 0.0023
-# price_getter('ATOS', 5, 'lessThan')
-price_getter("BTC", 5, "greaterThan")
-# print("testing ATOS")
-# price_getter("ATOS", 5, "lessThan")
+# BTC_target_price = 38500
+# SHIBA_target_price = 0.0023
 
-# GIT TEST
