@@ -1,9 +1,35 @@
-# FIXME: TESTING
-
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, SoupStrainer
 import requests
 from datetime import datetime as dt, time
 from pytz import timezone
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+
+# GSheets Initialization
+scope = [
+    "https://spreadsheets.google.com/feeds",
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive.file",
+    "https://www.googleapis.com/auth/drive",
+]
+
+creds = ServiceAccountCredentials.from_json_keyfile_name(
+    "stock_crypto_creds.json", scope
+)
+
+client = gspread.authorize(creds)
+spreadsheet = client.open("StocksAndCrypto").sheet1
+
+# Gets all rows and columns as a dictionary
+data = spreadsheet.get_all_records()
+
+# Dict containing all stock and crypto options
+investment_dict = {}
+for i in data:
+    # Turns the 'Investment_Name' column from gsheets to the key of a new dictionary with the old keys as values
+    investment_name = i["Investment_Name"]
+    del i["Investment_Name"]
+    investment_dict[investment_name] = i
 
 # TELEGRAM CONSTANTS
 CRYPTO_BOT_TOKEN = "5087210892:AAGmv8Up5MHuiyt-BVt21lVUh7-KgLvYC54"
@@ -11,73 +37,42 @@ CRYPTO_CHAT_ID = "-619492712"
 CRYPTO_TELEGRAM_URL = f"https://api.telegram.org/bot{CRYPTO_BOT_TOKEN}/sendMessage"
 
 
-STOCK_BOT_TOKEN = "5172522415:AAEqnv01yFDyzCN20fXJUUMx1PATlv5sfF"
+STOCK_BOT_TOKEN = "5172522415:AAEqnv01yFDyzCN20fXJUUMx1PATlv5sfFs"
 STOCK_CHAT_ID = "-646527859"
 STOCK_TELEGRAM_URL = f"https://api.telegram.org/bot{STOCK_BOT_TOKEN}/sendMessage"
 
 
-# Scraping Link Creators
-def create_stock_link(ticker):
-    BASE_LINK = f"https://finance.yahoo.com/quote/ticker?p=ticker&.tsrc=fin-srch"
-    return BASE_LINK.replace("ticker", ticker)
-
-
-def create_crypto_link(crypto_name):
-    BASE_LINK = f"https://coinmarketcap.com/currencies/crypto_name/"
-    return BASE_LINK.replace("crypto_name", crypto_name)
-
-
-# Dict containing all stock and crypto options
-STOCK_AND_CRYPTO_DICT = {
-    "BTC": {
-        "type": "crypto",
-        "link": create_crypto_link("bitcoin"),
-    },
-    "SHIBA_INU": {
-        "type": "crypto",
-        "link": create_crypto_link("shiba-inu"),
-    },
-    "ATOS": {
-        "type": "stock",
-        "link": create_stock_link("ATOS"),
-    },
-    # BLACKBERRY
-    # ASK STEVEN
-    # ASK MEG
-}
-
-
 # Sends message on Telegram
-def telegram_messenger(stock_crypto_name, price):
+def telegram_messenger(stock_crypto_name, investment_type, price):
+    chat_id = STOCK_CHAT_ID if investment_type == "stock" else CRYPTO_CHAT_ID
+    url = STOCK_TELEGRAM_URL if investment_type == "stock" else CRYPTO_TELEGRAM_URL
+
     # datetime
     time = dt.now(timezone("US/Eastern"))
     dt_string = time.strftime("%m/%d/%Y %H:%M")
-    print(f"TELEGRAM_MESSENGER : time rn is {dt_string}")
 
     # GET pieces
     MESSAGE = f"{dt_string}---${stock_crypto_name} IS ${price if stock_crypto_name != 'SHIBA_INU' else '{:f}'.format(price)}"
-    PARAMS = {"chat_id": CRYPTO_CHAT_ID, "text": f"{MESSAGE}"}
+    PARAMS = {"chat_id": chat_id, "text": f"{MESSAGE}"}
 
     # GET call
-    requests.get(url=CRYPTO_TELEGRAM_URL, params=PARAMS)
+    requests.get(url=url, params=PARAMS)
 
 
 # Compares current price to target price based on comparison type given and then calls telegram_messenger if conditions met
 def compare_price_and_send_message(
-    current_price, target_price, investment_name, comparison_type
+    current_price, target_price, investment_name, comparison_type, investment_type
 ):
     if comparison_type == "lessThan" and current_price < target_price:
-        telegram_messenger(investment_name, current_price)
+        telegram_messenger(investment_name, investment_type, current_price)
     elif comparison_type == "greaterThan" and current_price > target_price:
-        telegram_messenger(investment_name, current_price)
+        telegram_messenger(investment_name, investment_type, current_price)
 
 
-# FIXME WORKS FOR EST, NEED TO SEE IF IT WORKS FOR GMT?
 def market_open_checker(given_date_time):
     START_TIME = time(9, 30, 0)
     END_TIME = time(15, 45, 0)
     TIME_NOW = given_date_time.time()
-    print(f"MARKET OPEN: time now is {TIME_NOW}")
 
     # Checks if currently the market is open
     # Monday is 1 and Sunday is 7
@@ -86,56 +81,46 @@ def market_open_checker(given_date_time):
         and TIME_NOW >= START_TIME
         and TIME_NOW <= END_TIME
     ):
+        # Market is Open
         return True
+
+    # Market is Closed
     return False
 
 
 def get_current_price(investment_type, link):
     html_request = requests.get(link).text
-    soup = BeautifulSoup(html_request, "html.parser")
+    parse_conditions = SoupStrainer("h2", attrs={"class": "intraday__price "})
 
-    if investment_type == "stock" and market_open_checker(
-        dt.now(timezone("US/Eastern"))
+    if (
+        investment_type == "stock"
+        and market_open_checker(dt.now(timezone("US/Eastern"))) == False
     ):
-        print(
-            f"Market is Open and giventime to test is {dt.now(timezone('US/Eastern'))} "
-        )
-        my_tags = soup.find_all(
-            "fin-streamer", {"class": "Fw(b) Fz(36px) Mb(-4px) D(ib)"}
-        )
-        CURRENT_PRICE = my_tags[0].contents[0]
+        return None
 
-    elif investment_type == "crypto":
-        my_tags = soup.find_all("div", {"class": "priceValue"})
-        CURRENT_PRICE = (
-            list(my_tags[0].children)[0].text.replace("$", "").replace(",", "")
-        )
-    else:
-        CURRENT_PRICE = None
-
-    if CURRENT_PRICE != None:
-        return float(CURRENT_PRICE)
+    soup = BeautifulSoup(html_request, "html.parser", parse_only=parse_conditions)
+    current_price = soup.find("bg-quote").text.replace(",", "")
+    return float(current_price)
 
 
 def price_getter(investment_name, target_price, comparison_type):
 
-    investment_type = STOCK_AND_CRYPTO_DICT[investment_name]["type"]
-    link = STOCK_AND_CRYPTO_DICT[f"{investment_name}"]["link"]
+    investment_type = investment_dict[investment_name]["Investment_Type"]
+    link = investment_dict[f"{investment_name}"]["Link"]
 
     CURRENT_PRICE = get_current_price(investment_type, link)
+
     if CURRENT_PRICE != None:
         compare_price_and_send_message(
-            CURRENT_PRICE, target_price, investment_name, comparison_type
+            CURRENT_PRICE,
+            target_price,
+            investment_name,
+            comparison_type,
+            investment_type,
         )
 
 
-# FIXME: MOVE THESE INTO FUNCTION CALLS
-# CRYPTO CONSTANTS
-BTC_target_price = 38500
-SHIBA_target_price = 0.0023
-# price_getter('ATOS', 5, 'lessThan')
-price_getter("BTC", 5, "greaterThan")
-# print("testing ATOS")
-# price_getter("ATOS", 5, "lessThan")
-
-# GIT TEST
+for key, value in investment_dict.items():
+    target_price = value["Target_Price"]
+    comparison_type = value["Comparison_Type"]
+    price_getter(key, target_price, comparison_type)
