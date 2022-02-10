@@ -1,14 +1,9 @@
-# FIXME: TESTING
-
-from cgi import print_environ
 from bs4 import BeautifulSoup, SoupStrainer
 import requests
 from datetime import datetime as dt, time
 from pytz import timezone
-from pprint import pprint
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-
 
 # GSheets Initialization
 scope = [
@@ -17,9 +12,11 @@ scope = [
     "https://www.googleapis.com/auth/drive.file",
     "https://www.googleapis.com/auth/drive",
 ]
+
 creds = ServiceAccountCredentials.from_json_keyfile_name(
     "stock_crypto_creds.json", scope
 )
+
 client = gspread.authorize(creds)
 spreadsheet = client.open("StocksAndCrypto").sheet1
 
@@ -33,7 +30,6 @@ for i in data:
     investment_name = i["Investment_Name"]
     del i["Investment_Name"]
     investment_dict[investment_name] = i
-
 
 # TELEGRAM CONSTANTS
 CRYPTO_BOT_TOKEN = "5087210892:AAGmv8Up5MHuiyt-BVt21lVUh7-KgLvYC54"
@@ -54,7 +50,6 @@ def telegram_messenger(stock_crypto_name, investment_type, price):
     # datetime
     time = dt.now(timezone("US/Eastern"))
     dt_string = time.strftime("%m/%d/%Y %H:%M")
-    print(f"TELEGRAM_MESSENGER : time rn is {dt_string}")
 
     # GET pieces
     MESSAGE = f"{dt_string}---${stock_crypto_name} IS ${price if stock_crypto_name != 'SHIBA_INU' else '{:f}'.format(price)}"
@@ -111,10 +106,10 @@ def get_current_price(investment_type, link):
 def price_getter(investment_name, target_price, comparison_type):
 
     investment_type = investment_dict[investment_name]["Investment_Type"]
-
     link = investment_dict[f"{investment_name}"]["Link"]
 
     CURRENT_PRICE = get_current_price(investment_type, link)
+
     if CURRENT_PRICE != None:
         compare_price_and_send_message(
             CURRENT_PRICE,
@@ -124,10 +119,6 @@ def price_getter(investment_name, target_price, comparison_type):
             investment_type,
         )
 
-
-# CRYPTO CONSTANTS
-# BTC_target_price = 38500
-# SHIBA_target_price = 0.0023
 
 for key, value in investment_dict.items():
     target_price = value["Target_Price"]
