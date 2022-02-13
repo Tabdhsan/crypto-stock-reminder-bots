@@ -121,6 +121,6 @@ def price_getter(investment_name, target_price, comparison_type):
 
 
 for key, value in investment_dict.items():
-    target_price = value["Target_Price"]
+    target_price = int(value["Target_Price"])
     comparison_type = value["Comparison_Type"]
     price_getter(key, target_price, comparison_type)
