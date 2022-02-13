@@ -121,6 +121,11 @@ def price_getter(investment_name, target_price, comparison_type):
 
 
 for key, value in investment_dict.items():
-    target_price = int(value["Target_Price"])
+    raw_target_price = value["Target_Price"]
+    if type(raw_target_price) == str:
+        target_price = float(value["Target_Price"])
+    elif type(raw_target_price) == float:
+        target_price = raw_target_price
+        
     comparison_type = value["Comparison_Type"]
     price_getter(key, target_price, comparison_type)
