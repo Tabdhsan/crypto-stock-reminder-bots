@@ -1,14 +1,24 @@
-from bs4 import BeautifulSoup, SoupStrainer
-import requests
-from datetime import datetime as dt, time
-from pytz import timezone
+from datetime import datetime as dt
+from datetime import time
+
 import gspread
+import requests
+from bs4 import BeautifulSoup, SoupStrainer
 from oauth2client.service_account import ServiceAccountCredentials
+from pytz import timezone
+
+from tokens import CRYPTO_BOT_TOKEN, STOCK_BOT_TOKEN
+
+# TELEGRAM CONSTANTS
+CRYPTO_CHAT_ID = "-619492712"
+CRYPTO_TELEGRAM_URL = f"https://api.telegram.org/bot{CRYPTO_BOT_TOKEN}/sendMessage"
+
+STOCK_CHAT_ID = "-646527859"
+STOCK_TELEGRAM_URL = f"https://api.telegram.org/bot{STOCK_BOT_TOKEN}/sendMessage"
 
 
 def lambda_handler(event, context):
     # GSheets Initialization
-
     scope = [
         "https://spreadsheets.google.com/feeds",
         "https://www.googleapis.com/auth/spreadsheets",
@@ -16,54 +26,26 @@ def lambda_handler(event, context):
         "https://www.googleapis.com/auth/drive",
     ]
 
-    CREDS_JSON = {
-        "type": "service_account",
-        "project_id": "mystockandcryptoproject",
-        "private_key_id": "1bbcff6302380038012f35042855845a392219ca",
-        "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCUq4ib/X6rYXd8\n88NhA4YqU7xahgxKfPX4qeDKgoOqcwR9e2KwqLJ8okZ8qpBJKgJtZju8x9WOvNBC\npdlfM8y+kcWPVSgCISGbH3halDQ9oz0suqB4jmZjOpJwpec9U8hx/wMpZIiOoYlL\nQL8V7HrqV4ZIRibJFbP3Z8WVskO6lvL3QkE89VNA+R2CGB50kxVZTEBsG8kFBjJY\ng4aEUtI69g7Qu5WKSQIRpfGoWCvi/NWyOnMvW/7+3Zbmko7xelq/zjxo9PxpbCKd\n1xnlecsMTD3qX51OFiiSIAS3U0uzbHQFFxGwgPmEN6LygeW9qszzdkneMbbfNk+T\nAJgWwltzAgMBAAECggEAPjuNrEqRPxlGJNJ/WzlX7Jjvs+7/7yBe8G/gDrVSe0O5\nQfOnzK5ZRK3DFsVpL487w+KzJ+N4xE7KWNPG6cCruKwZiFXLsRSAVkh2n2gBdDnE\nTlhy+vQU7P2kNi5kXToYootuneGc/iOlbpBUTM+YZkcsCU4AR1Vj57ETNwYPrueE\nyRjhJZgL27HRtgMkqGIleI2H33epvnlHVOBNnQlsdOKkoMzHiGTuWVUIUtOtDMZW\n+kn8fZoAK4QcZuRSGRu6ZENOVA4VVQpFW2EI+N3O+MBu1DCWCN2S16OdG/SzQ1Hu\n85xOn4UHqnfIWkMZxe54p8hoqr5xp49QLvxuS8RNUQKBgQDEY0/jiQdQ9l1hMt1p\ntXQGnJ8MQ2oAoHOr+PksBoxkz4UmvVcflGRe1+ZfyGf8o2VgnG5N7dWiA2odvXuu\nGob12TkS7+2kixaMWDlYegYlpO1grO+4o1mlH78sLFtOJlvlIDoS6+z52Uu7B1xh\ncxJ8MvZpOQFqMig7oKpJKD9IIwKBgQDBzDcQO0/EkKB0IEOzPnG7lK0plhIKoK/K\ncQgIRrfOBdUWH5NlWmxjOgPvzvuMCJUhpRqhqP1bo2ivyIhbIbVR6S8xsy4Cj99v\naKq8vabU7epPorgRHAH3kDKxn+DJBK5Bh4yH4lqgPf5aBCt5hbkFpy/SW2lb32BR\n+KroD/SscQKBgH9QOpwxWzLbZBH9HZjH713R7zHOCkw5uINGNpKZ9C3uck149aAd\nXSw3Hrv9eZxIeRI2lzOh+Zq8R/Dbw/BMdi2vEtb5/79qA8Yb86EuCgohb1n7ArVa\nAGWRvSdv4gk5yN0zFTLrC4e1nOi0jukF5nfpueDg+c/UkEyHjZ07oDqtAoGATW5T\nvdeE2ovSoDNX+WEEvib8PPZqBPcI5cDdrbjbraRk7C73jHJhhg/jDMjNdrjjJQs7\npcXIXPngVQOxf3/rW2vo4FmwE3P6mR/fwAOiicb5bJIeKy/elVR2/MNdY9PL8ADB\npHVLMmUyoDK0UByevWR8VfcSFJQefwH0/z2Iy/ECgYEArkxfAuKmZkG5noWJ4yHN\nAK+Cqb1SHMoinbmtodQL98dnnszHYIBws0r6sohiMZUunwwt0lvq79tJ+LGKoefr\ngnQgPXU2+qdCp43I/sirm3+ngRF7Hzlzfw5Xs0mjek/ay7wWZ0A77mfSseXkoXcg\n2h+F/YCQ+VsjQd2GdbUrRSk=\n-----END PRIVATE KEY-----\n",
-        "client_email": "mystockandcryptoproject@mystockandcryptoproject.iam.gserviceaccount.com",
-        "client_id": "114494388559806065053",
-        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-        "token_uri": "https://oauth2.googleapis.com/token",
-        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-        "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/mystockandcryptoproject%40mystockandcryptoproject.iam.gserviceaccount.com",
-    }
-
-    # From name is to get the creds from a file
-    # creds = ServiceAccountCredentials.from_json_keyfile_name(
-    #     "stock_crypto_creds.json", scope
-    # )
-    # print('SETTING UP CREDS')
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(CREDS_JSON, scope)
+    creds = ServiceAccountCredentials.from_json_keyfile_name(
+        "stock_crypto_creds.json", scope
+    )
 
     client = gspread.authorize(creds)
     spreadsheet = client.open("StocksAndCrypto").sheet1
 
-    # Gets all rows and columns as a dictionary
+    # Gets all rows and columns as a dictionary from google sheets
     data = spreadsheet.get_all_records()
 
-    # print('RECEIVED DATA FROM GSHEETS')
     # Dict containing all stock and crypto options
     investment_dict = {}
-    # print('CREATING DICT')
     for i in data:
         # Turns the 'Investment_Name' column from gsheets to the key of a new dictionary with the old keys as values
         investment_name = i["Investment_Name"]
         del i["Investment_Name"]
         investment_dict[investment_name] = i
 
-    # TELEGRAM CONSTANTS
-    CRYPTO_BOT_TOKEN = "5087210892:AAGmv8Up5MHuiyt-BVt21lVUh7-KgLvYC54"
-    CRYPTO_CHAT_ID = "-619492712"
-    CRYPTO_TELEGRAM_URL = f"https://api.telegram.org/bot{CRYPTO_BOT_TOKEN}/sendMessage"
-
-    STOCK_BOT_TOKEN = "5172522415:AAEqnv01yFDyzCN20fXJUUMx1PATlv5sfFs"
-    STOCK_CHAT_ID = "-646527859"
-    STOCK_TELEGRAM_URL = f"https://api.telegram.org/bot{STOCK_BOT_TOKEN}/sendMessage"
-
     # Sends message on Telegram
     def telegram_messenger(stock_crypto_name, investment_type, price):
-        # print('TELEGRAM MESSENGER')
         chat_id = STOCK_CHAT_ID if investment_type == "stock" else CRYPTO_CHAT_ID
         url = STOCK_TELEGRAM_URL if investment_type == "stock" else CRYPTO_TELEGRAM_URL
 
@@ -82,27 +64,19 @@ def lambda_handler(event, context):
     def compare_price_and_send_message(
         current_price, target_price, investment_name, comparison_type, investment_type
     ):
-        # print('price comaprisons')
-
         if comparison_type == "lessThan" and current_price < target_price:
             telegram_messenger(investment_name, investment_type, current_price)
         elif comparison_type == "greaterThan" and current_price > target_price:
             telegram_messenger(investment_name, investment_type, current_price)
 
     def market_open_checker(given_date_time):
-        # print('market open checker')
-
         START_TIME = time(9, 30, 0)
         END_TIME = time(15, 45, 0)
         TIME_NOW = given_date_time.time()
 
         # Checks if currently the market is open
         # Monday is 1 and Sunday is 7
-        if (
-            given_date_time.isoweekday() <= 5
-            and TIME_NOW >= START_TIME
-            and TIME_NOW <= END_TIME
-        ):
+        if given_date_time.isoweekday() <= 5 and START_TIME <= TIME_NOW <= END_TIME:
             # Market is Open
             return True
 
@@ -110,8 +84,6 @@ def lambda_handler(event, context):
         return False
 
     def get_current_price(investment_type, link):
-        print("CURR PRICE CHECKER")
-
         html_request = requests.get(link).text
         parse_conditions = SoupStrainer("h2", attrs={"class": "intraday__price "})
 
@@ -126,8 +98,6 @@ def lambda_handler(event, context):
         return float(current_price)
 
     def price_getter(investment_name, target_price, comparison_type):
-        print("PRICE GETTINER")
-
         investment_type = investment_dict[investment_name]["Investment_Type"]
         link = investment_dict[f"{investment_name}"]["Link"]
 
@@ -142,7 +112,6 @@ def lambda_handler(event, context):
                 investment_type,
             )
 
-    # print('RUNNIGN FOR LOOP')
     for key, value in investment_dict.items():
         raw_target_price = value["Target_Price"]
         if type((raw_target_price)) == float:
@@ -152,5 +121,3 @@ def lambda_handler(event, context):
         # target_price = float(value["Target_Price"].replace(",",""))
         comparison_type = value["Comparison_Type"]
         price_getter(key, target_price, comparison_type)
-
-    # print("WE DONEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")
