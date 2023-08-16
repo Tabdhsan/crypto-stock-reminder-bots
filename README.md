@@ -8,6 +8,7 @@ This program utilizes the following technologies and APIs:
 -   **Google Sheets API**: Used to retrieve information from a Google Sheet containing target prices and comparison types.
 -   **Web Scraping and Beautiful Soup**: Employed to scrape real-time price data from sources like financial websites for stocks and cryptocurrencies.
 -   **Telegram API**: Utilized to send notifications to specified Telegram chats.
+-   **AWS Lambda**: The code is in the form of a lambda handler so it can easily be put into AWS Lambda and used alongside Cloudwatch for logging and EventBridge for scheduling.
 
 ## Features
 
