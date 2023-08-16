@@ -7,13 +7,12 @@ from bs4 import BeautifulSoup, SoupStrainer
 from oauth2client.service_account import ServiceAccountCredentials
 from pytz import timezone
 
-from tokens import CRYPTO_BOT_TOKEN, STOCK_BOT_TOKEN
+from tokens import CRYPTO_BOT_TOKEN, CRYPTO_CHAT_ID, STOCK_BOT_TOKEN, STOCK_CHAT_ID
 
 # TELEGRAM CONSTANTS
-CRYPTO_CHAT_ID = "-619492712"
+
 CRYPTO_TELEGRAM_URL = f"https://api.telegram.org/bot{CRYPTO_BOT_TOKEN}/sendMessage"
 
-STOCK_CHAT_ID = "-646527859"
 STOCK_TELEGRAM_URL = f"https://api.telegram.org/bot{STOCK_BOT_TOKEN}/sendMessage"
 
 
