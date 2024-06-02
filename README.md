@@ -6,7 +6,7 @@ This program utilizes the following technologies and APIs:
 
 -   **Python**: The programming language used to write the script.
 -   **Google Sheets API**: Used to retrieve information from a Google Sheet containing target prices and comparison types.
--   **Web Scraping and Beautiful Soup**: Employed to scrape real-time price data from sources like financial websites for stocks and cryptocurrencies.
+-   **Coin Gecko API**: Employed to get realtime crypto data.
 -   **Telegram API**: Utilized to send notifications to specified Telegram chats.
 -   **AWS Lambda**: The code is in the form of a lambda handler so it can easily be put into AWS Lambda and used alongside Cloudwatch for logging and EventBridge for scheduling.
 
@@ -27,7 +27,7 @@ This program utilizes the following technologies and APIs:
 1. **Install Dependencies**: Make sure you have the required Python libraries installed. You can install them using the following command:
 
     ```bash
-    pip install google-api-python-client beautifulsoup4 requests
+    pip install google-api-python-client requests
     ```
 
 2. **Google Sheets API Setup**:
@@ -46,7 +46,7 @@ This program utilizes the following technologies and APIs:
 4. **Stocks and Crypto Price Scraping**:
 
 -   Identify reliable sources for fetching real-time price data for stocks and cryptocurrencies.
--   Implement web scraping using Beautiful Soup to extract the required price data from the source websites.
+-   Implement REST API Calls to get accurate price data
 
 5. **Define Target Prices and Comparison Types**:
 
@@ -58,16 +58,16 @@ This program utilizes the following technologies and APIs:
 1. Run the Python script using the following command:
 
 ```bash
-python stock_crypto_notifier.py
+python lambda_function.py
 ```
 
 2. The script will fetch current price data, compare it against target prices, and send notifications via Telegram when the conditions are met.
 
 ## Important Notes
 
--   Web scraping can be sensitive to changes in the structure of the source website. Regularly check and update the scraping code if any changes occur.
+-   Env setup is done via the `os` module. This is to ensure that the code can be easily deployed to AWS Lambda without having to hardcode any sensitive information.
 
--   Ensure that you are complying with the terms of use of the websites you are scraping data from.
+-   The code is in the form of a lambda handler so it can easily be put into AWS Lambda and used alongside Cloudwatch for logging and EventBridge for scheduling.
 
 -   Handle errors and exceptions gracefully to avoid unexpected crashes of the script.
 
