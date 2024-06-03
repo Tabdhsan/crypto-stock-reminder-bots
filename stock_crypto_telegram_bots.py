@@ -75,9 +75,8 @@ class TelegramBots:
         return time.strftime("%m/%d/%Y %H:%M")
 
     def convert_price_to_string(self, price) -> str:
-        # Don't want to remove the decimals if the price is less than 0.01 (0.0000001234)
-        if price < 0.01:
-            print(price)
+        # Don't want to remove the decimals if the price is less than 1 (0.0000001234)
+        if price < 1:
             return str(price)
         else:
             return str(int(price))
