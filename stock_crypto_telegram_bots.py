@@ -21,7 +21,7 @@ class TelegramBots:
         self.records = self.google_sheets_wrapper.get_all_records()
         self.investment_dict = self.get_investment_dict(self.records)
 
-    # Checks if stock market is clear based on daily hours (doesn't acct for edge cases like holidays)
+    # Checks if stock market is open based on daily hours (doesn't acct for edge cases like holidays)
     # This can probably be done via a simple api call but I don't need robust data
     def market_open_checker(given_date_time):
         START_TIME = time(9, 30, 0)
@@ -77,21 +77,33 @@ class TelegramBots:
                 filtered_dict[key] = filtered_conditions
         return filtered_dict
 
+    def format_number(self, number):
+        if number >= 0.01 or number == 0:
+            return f"{number:.4f}"
+
+        # Find the first non-zero digit after the decimal point
+        decimal_str = f"{number:.20f}".rstrip("0")
+        significant_digits = len(decimal_str) - decimal_str.index(".") - 1
+        return f"{number:.{significant_digits}f}"
+
     def get_dt_string(self):
         time = dt.now(timezone("US/Eastern"))
         return time.strftime("%m/%d/%Y %H:%M")
 
     def convert_price_to_string(self, price) -> str:
-        # Don't want to remove the decimals if the price is less than 1 (0.0000001234)
-        if price < 1:
-            return str(price)
-        else:
-            return str(int(price))
 
-    def get_message_text(self, investment_name, price):
+        if price < 0.01:
+            return f"{price:.8f}"
+        elif price < 1:
+            return f"{price:.2f}"
+        else:
+            return f"{price:.2f}"
+
+    def get_message_text(self, investment_name, price, target_price, comparison_type):
         dt_string = self.get_dt_string()
-        price = self.convert_price_to_string(price)
-        return f"{dt_string}---${investment_name} IS ${price}"
+        price_string = self.format_number(price)
+        target_price_string = self.format_number(target_price)
+        return f"{dt_string}---${investment_name} IS ${price_string} | Condition: {comparison_type} {target_price_string}"
 
     def send_crypto_messages(self):
         crypto_dict = self.get_dict_by_type("crypto")
@@ -116,8 +128,9 @@ class TelegramBots:
 
                 # Send a message
                 if is_valid_price is True:
-                    message_text = self.get_message_text(crypto_name, current_price)
-                    message_text += f" | Condition: {comparison_type} {target_price}"
+                    message_text = self.get_message_text(
+                        crypto_name, current_price, target_price, comparison_type
+                    )
 
                     self.telegram_wrapper.send_message("crypto", message_text)
 
